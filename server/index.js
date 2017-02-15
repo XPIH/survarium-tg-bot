@@ -64,6 +64,10 @@ bot.on('inline_query', msg => {
     return api
         .find(query, { limit: 10 })
         .then(json => {
+            if (!json) {
+                return;
+            }
+
             bot.answerInlineQuery(chatId, json.map(player => ({
                 type: 'article',
                 id: player.nickname,
