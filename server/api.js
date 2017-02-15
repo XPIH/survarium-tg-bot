@@ -3,23 +3,18 @@ const got = require('got');
 const cache = require('./cache');
 
 const apiHost = config.api;
+const httpOptions = {
+    json: true,
+    rejectUnauthorized: false
+};
 
 exports.stats = (nickname) => {
     if (!nickname) {
         return Promise.reject();
     }
 
-    const cacheKey = `player:${nickname}`;
-    const cached = cache.get(cacheKey);
-
-    if (cached) {
-        return Promise.resolve(cached);
-    }
-
-    return got(`${apiHost}/v2/players/${nickname}`, {
-        json: true,
-        rejectUnauthorized: false
-    }).then(res => { cache.set(cacheKey, res.body); return res.body; });
+    return got(`${apiHost}/v2/players/${encodeURIComponent(nickname)}`, httpOptions)
+        .then(res => res.body);
 };
 
 exports.find = (nickname, options) => {
@@ -29,12 +24,10 @@ exports.find = (nickname, options) => {
 
     let limit = options && options.limit || 10;
 
-    return got(`${apiHost}/v2/players`, {
-        json: true,
-        rejectUnauthorized: false,
+    return got(`${apiHost}/v2/players`, Object.assign({
         query: {
             nickname,
             limit
         }
-    }).then(res => res.body);
+    }, httpOptions)).then(res => res.body);
 };

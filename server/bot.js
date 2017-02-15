@@ -46,7 +46,7 @@ if (!config.botan) {
     bot.track = botan.track.bind(botan);
 }
 
-bot.handleError = (chatId, error) => bot
+bot.handleError = (chatId, request, error) => bot
     .sendMessage(chatId, `Error happen: ${error.message}`)
     .catch(() => {
         console.error(`Error happen in chat ${chatId}: ${error.message}`);
