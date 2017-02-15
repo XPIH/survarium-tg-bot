@@ -6,7 +6,11 @@ const cache = require('./cache');
 
 const FRONT = config.front;
 
-bot.onText(/.*/, msg => console.log(msg.text));
+bot.onText(/.*/, msg => {
+    let date = new Date();
+
+    console.log(`${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()} ${date.getHours()}:${date.getMinutes()}:${date.getSeconds()} ${msg.text}`);
+});
 
 bot.onText(/\/stats(@\w+)?(\s(.*))?/, (msg, match) => {
     const chatId = msg.chat.id;
@@ -23,7 +27,7 @@ bot.onText(/\/stats(@\w+)?(\s(.*))?/, (msg, match) => {
     const cacheKey = `player:${nickname}`;
     const cached = cache.get(cacheKey);
 
-    let send = (message) => {
+    let send = message => {
         bot.sendMessage(chatId, message, {
             parse_mode: 'HTML',
             disable_web_page_preview: true
@@ -55,7 +59,7 @@ bot.onText(/\/stats(@\w+)?(\s(.*))?/, (msg, match) => {
 
 bot.on('inline_query', msg => {
     const chatId = msg.id;
-    const query = msg.query;
+    const query  = msg.query;
 
     if (!query) {
         return;
@@ -68,14 +72,14 @@ bot.on('inline_query', msg => {
                 return;
             }
 
+            bot.track(msg, 'Inline query');
+
             bot.answerInlineQuery(chatId, json.map(player => ({
                 type: 'article',
                 id: player.nickname,
                 title: player.nickname,
                 message_text: `/stats ${player.nickname}`
             })));
-
-            bot.track(msg, 'Inline query');
         })
         .catch(bot.handleError.bind(bot, chatId, msg));
 });
