@@ -16,7 +16,10 @@ exports.stats = (nickname) => {
         return Promise.resolve(cached);
     }
 
-    return got(`${apiHost}/v2/players/${nickname}`, { json: true }).then(res => { cache.set(cacheKey, res.body); return res.body; });
+    return got(`${apiHost}/v2/players/${nickname}`, {
+        json: true,
+        rejectUnauthorized: false
+    }).then(res => { cache.set(cacheKey, res.body); return res.body; });
 };
 
 exports.find = (nickname, options) => {
@@ -28,6 +31,7 @@ exports.find = (nickname, options) => {
 
     return got(`${apiHost}/v2/players`, {
         json: true,
+        rejectUnauthorized: false,
         query: {
             nickname,
             limit
