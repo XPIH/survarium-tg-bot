@@ -24,7 +24,7 @@ bot.onText(/\/stats(@\w+)?(\s(.*))?/, (msg, match) => {
 
     bot.track(msg, 'Player stats');
 
-    const cacheKey = `player:${nickname}`;
+    const cacheKey = `players:${nickname}`;
     const cached = cache.get(cacheKey);
 
     let send = message => {
@@ -93,7 +93,7 @@ bot.onText(/\/steam/, (msg) => {
     const cached = cache.get(cacheKey);
 
     let send = count => {
-        bot.sendMessage(chatId, `Players online via steam: ${count}`);
+        bot.sendMessage(chatId, i18n('steam:online').replace('%count%', count));
     };
 
     if (cached) {
@@ -106,6 +106,33 @@ bot.onText(/\/steam/, (msg) => {
             let count = json.count;
 
             cache.set(cacheKey, count, 1000 * 60 * 5);
+            send(count);
+        })
+        .catch(bot.handleError.bind(bot, chatId, msg));
+});
+
+bot.onText(/\/online/, (msg) => {
+    const chatId = msg.chat.id;
+
+    bot.track(msg, 'Players online');
+
+    const cacheKey = `players:online`;
+    const cached = cache.get(cacheKey);
+
+    let send = count => {
+        bot.sendMessage(chatId, i18n('players:online').replace('%count%', count));
+    };
+
+    if (cached) {
+        return send(cached);
+    }
+
+    return api
+        .online({ minutes: 18 })
+        .then(json => {
+            let count = json.count;
+
+            cache.set(cacheKey, count, 1000 * 60 * 2);
             send(count);
         })
         .catch(bot.handleError.bind(bot, chatId, msg));

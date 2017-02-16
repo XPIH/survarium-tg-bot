@@ -34,3 +34,11 @@ exports.find = (nickname, options) => {
 exports.steamOnline = () => {
     return got(`${apiHost}/v2/steam/online`, httpOptions).then(res => res.body);
 };
+
+exports.online = (params) => {
+    return got(`${apiHost}/v2/players/unique`, Object.assign({
+        query: {
+            minutes: params && params.minutes || 20
+        }
+    }, httpOptions)).then(res => res.body);
+};
