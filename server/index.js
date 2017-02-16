@@ -83,3 +83,30 @@ bot.on('inline_query', msg => {
         })
         .catch(bot.handleError.bind(bot, chatId, msg));
 });
+
+bot.onText(/\/steam/, (msg) => {
+    const chatId = msg.chat.id;
+
+    bot.track(msg, 'Steam online');
+
+    const cacheKey = `steam:online`;
+    const cached = cache.get(cacheKey);
+
+    let send = count => {
+        bot.sendMessage(chatId, `Players online via steam: ${count}`);
+    };
+
+    if (cached) {
+        return send(cached);
+    }
+
+    return api
+        .steamOnline()
+        .then(json => {
+            let count = json.count;
+
+            cache.set(cacheKey, count, 1000 * 60 * 5);
+            send(count);
+        })
+        .catch(bot.handleError.bind(bot, chatId, msg));
+});

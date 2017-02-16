@@ -1,6 +1,5 @@
 const config = require('./config');
 const got = require('got');
-const cache = require('./cache');
 
 const apiHost = config.api;
 const httpOptions = {
@@ -30,4 +29,8 @@ exports.find = (nickname, options) => {
             limit
         }
     }, httpOptions)).then(res => res.body);
+};
+
+exports.steamOnline = () => {
+    return got(`${apiHost}/v2/steam/online`, httpOptions).then(res => res.body);
 };
