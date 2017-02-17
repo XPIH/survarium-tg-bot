@@ -42,3 +42,15 @@ exports.online = (params) => {
         }
     }, httpOptions)).then(res => res.body);
 };
+
+exports.vgdevs = () => {
+    return got(`${apiHost}/v2/vg/devs`, httpOptions).then(res => res.body);
+};
+
+exports.vgmessages = (params) => {
+    return got(`${apiHost}/v2/vg/messages`, Object.assign({
+        query: {
+            limit: params && params.limit || 1
+        }
+    }, httpOptions)).then(res => res.body);
+};

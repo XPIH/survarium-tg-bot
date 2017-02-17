@@ -1,8 +1,9 @@
-const bot = require('./bot');
-const api = require('./api');
-const i18n = require('./i18n');
+const bot    = require('./bot');
+const api    = require('./api');
+const i18n   = require('./i18n');
 const config = require('./config');
-const cache = require('./cache');
+const cache  = require('./cache');
+const helpers = require('./helpers');
 
 const FRONT = config.front;
 
@@ -134,6 +135,43 @@ bot.onText(/\/online/, (msg) => {
 
             cache.set(cacheKey, count, 1000 * 60 * 2);
             send(count);
+        })
+        .catch(bot.handleError.bind(bot, chatId, msg));
+});
+
+bot.onText(/\/devmsg/, (msg) => {
+    const chatId = msg.chat.id;
+
+    bot.track(msg, 'Last devmessage');
+
+    const cacheKey = `vg:messages`;
+    const cached = cache.get(cacheKey);
+
+    let send = message => {
+        helpers.devmessage(message).forEach(chunk =>
+            bot.sendMessage(chatId, chunk, {
+                parse_mode: 'HTML',
+                disable_web_page_preview: true
+            }));
+    };
+
+    if (cached) {
+        return send(cached);
+    }
+
+    return Promise
+        .all([
+            api.vgdevs(),
+            api.vgmessages({ limit: 1 })
+        ])
+        .then(vg => {
+            let devs = vg[0];
+            let message = vg[1].data[0];
+
+            message.dev = devs.filter(dev => Number(dev.id) === message.dev)[0];
+
+            cache.set(cacheKey, message, 1000 * 60 * 2);
+            send(message);
         })
         .catch(bot.handleError.bind(bot, chatId, msg));
 });
