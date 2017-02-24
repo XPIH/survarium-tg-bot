@@ -6,6 +6,7 @@ const cache  = require('./cache');
 const helpers = require('./helpers');
 
 const FRONT = config.front;
+const ERR_NOCACHED = 'no cached data';
 
 bot.onText(/.*/, msg => {
     let date = new Date();
@@ -25,9 +26,6 @@ bot.onText(/\/stats(@\w+)?(\s(.*))?/, (msg, match) => {
 
     bot.track(msg, 'Player stats');
 
-    const cacheKey = `players:${nickname}`;
-    const cached = cache.get(cacheKey);
-
     let send = message => {
         bot.sendMessage(chatId, message, {
             parse_mode: 'HTML',
@@ -35,26 +33,33 @@ bot.onText(/\/stats(@\w+)?(\s(.*))?/, (msg, match) => {
         });
     };
 
-    if (cached) {
-        return send(cached);
-    }
-
-    return api
-        .stats(nickname)
-        .then(json => {
-            let name = json.nickname;
-
-            if (json.clan_meta) {
-                name = `[${json.clan_meta.abbr}] ${name}`;
+    const cacheKey = `players:${nickname}`;
+    cache
+        .get(cacheKey)
+        .then(cached => {
+            if (cached) {
+                return send(cached);
             }
 
-            const message = `<a href="${FRONT}/players/${encodeURIComponent(json.nickname)}">${name}</a>\n` +
-                `LVL: ${json.progress.level}\n` +
-                `KD: ${json.total.kd} (${json.total.kills}/${json.total.dies})`;
-
-            cache.set(cacheKey, message);
-            send(message);
+            throw new Error(ERR_NOCACHED);
         })
+        .catch(() => api
+                .stats(nickname)
+                .then(json => {
+                    let name = json.nickname;
+
+                    if (json.clan_meta) {
+                        name = `[${json.clan_meta.abbr}] ${name}`;
+                    }
+
+                    const message = `<a href="${FRONT}/players/${encodeURIComponent(json.nickname)}">${name}</a>\n` +
+                        `LVL: ${json.progress.level}\n` +
+                        `KD: ${json.total.kd} (${json.total.kills}/${json.total.dies})`;
+
+                    cache.set(cacheKey, message, 'EX', 60 * 10);
+                    send(message);
+                })
+            )
         .catch(bot.handleError.bind(bot, chatId, msg));
 });
 
@@ -90,25 +95,30 @@ bot.onText(/\/steam/, (msg) => {
 
     bot.track(msg, 'Steam online');
 
-    const cacheKey = `steam:online`;
-    const cached = cache.get(cacheKey);
-
     let send = count => {
         bot.sendMessage(chatId, i18n('steam:online').replace('%count%', count));
     };
 
-    if (cached) {
-        return send(cached);
-    }
+    const cacheKey = `steam:online`;
+    cache
+        .get(cacheKey)
+        .then(cached => {
 
-    return api
-        .steamOnline()
-        .then(json => {
-            let count = json.count;
+            if (cached) {
+                return send(cached);
+            }
 
-            cache.set(cacheKey, count, 1000 * 60 * 5);
-            send(count);
+            throw new Error(ERR_NOCACHED);
         })
+        .catch(() => api
+                .steamOnline()
+                .then(json => {
+                    let count = json.count;
+
+                    cache.set(cacheKey, count, 'EX', 60 * 5);
+                    send(count);
+                })
+        )
         .catch(bot.handleError.bind(bot, chatId, msg));
 });
 
@@ -117,25 +127,30 @@ bot.onText(/\/online/, (msg) => {
 
     bot.track(msg, 'Players online');
 
-    const cacheKey = `players:online`;
-    const cached = cache.get(cacheKey);
-
     let send = count => {
         bot.sendMessage(chatId, i18n('players:online').replace('%count%', count));
     };
 
-    if (cached) {
-        return send(cached);
-    }
+    const cacheKey = `players:online`;
+    cache
+        .get(cacheKey)
+        .then(cached => {
 
-    return api
-        .online({ minutes: 18 })
-        .then(json => {
-            let count = json.count;
+            if (cached) {
+                return send(cached);
+            }
 
-            cache.set(cacheKey, count, 1000 * 60 * 2);
-            send(count);
+            throw new Error(ERR_NOCACHED);
         })
+        .catch(() => api
+                .online({ minutes: 18 })
+                .then(json => {
+                    let count = json.count;
+
+                    cache.set(cacheKey, count, 'EX', 60 * 2);
+                    send(count);
+                })
+        )
         .catch(bot.handleError.bind(bot, chatId, msg));
 });
 
@@ -145,33 +160,37 @@ bot.onText(/\/devmsg/, (msg) => {
     bot.track(msg, 'Last devmessage');
 
     const cacheKey = `vg:messages`;
-    const cached = cache.get(cacheKey);
+    cache
+        .get(cacheKey)
+        .then(cached => {
+            let send = message => {
+                helpers.devmessage(message).forEach(chunk =>
+                    bot.sendMessage(chatId, chunk, {
+                        parse_mode: 'HTML',
+                        disable_web_page_preview: true
+                    }));
+            };
 
-    let send = message => {
-        helpers.devmessage(message).forEach(chunk =>
-            bot.sendMessage(chatId, chunk, {
-                parse_mode: 'HTML',
-                disable_web_page_preview: true
-            }));
-    };
+            if (cached) {
+                return send(cached);
+            }
 
-    if (cached) {
-        return send(cached);
-    }
-
-    return Promise
-        .all([
-            api.vgdevs(),
-            api.vgmessages({ limit: 1 })
-        ])
-        .then(vg => {
-            let devs = vg[0];
-            let message = vg[1].data[0];
-
-            message.dev = devs.filter(dev => Number(dev.id) === message.dev)[0];
-
-            cache.set(cacheKey, message, 1000 * 60 * 2);
-            send(message);
+            throw new Error(ERR_NOCACHED);
         })
+        .catch(() => Promise
+                .all([
+                    api.vgdevs(),
+                    api.vgmessages({ limit: 1 })
+                ])
+                .then(vg => {
+                    let devs = vg[0];
+                    let message = vg[1].data[0];
+
+                    message.dev = devs.filter(dev => Number(dev.id) === message.dev)[0];
+
+                    cache.set(cacheKey, message, 'EX', 60 * 2);
+                    send(message);
+                })
+        )
         .catch(bot.handleError.bind(bot, chatId, msg));
 });

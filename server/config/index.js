@@ -16,5 +16,13 @@ module.exports = {
             host: process.env.TELEGRAM_HOOK_HOST,
             del: !!process.env.TELEGRAM_HOOK_DEL
         }
+    },
+
+    cache: {
+        auth:  process.env.CACHE_AUTH,
+        port: +process.env.CACHE_PORT || 6379,
+        host:  process.env.CACHE_HOST || '127.0.0.1',
+        ipv : +process.env.CACHE_IPV  || 4,
+        sfx :  process.env.CACHE_SFX  || ''
     }
 };

@@ -1,9 +1,24 @@
-const LRU = require('lru-cache');
-const options = {
-    max: 500,
-    length: function (n, key) { return n * 2 + key.length },
-    maxAge: 1000 * 60 * 10
-};
-const cache = LRU(options);
+const Redis = require('ioredis');
 
-module.exports = cache;
+const config = require('./config');
+
+const redis = new Redis({
+    keyPrefix: 'sv-tg-bot:',
+    port: config.cache.port,
+    host: config.cache.host,
+    password: config.cache.auth,
+    family: config.cache.ipv,
+    suffix: config.cache.sfx
+});
+
+const redisHost = redis.connector.options.host + ':' + redis.connector.options.port;
+
+redis
+    .on('ready', function () {
+        console.info('redis connected', redisHost);
+    })
+    .on('error', function (err) {
+        console.error('redis error', err);
+    });
+
+module.exports = redis;
