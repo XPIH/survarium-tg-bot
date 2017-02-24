@@ -24,5 +24,11 @@ module.exports = {
         host:  process.env.CACHE_HOST || '127.0.0.1',
         ipv : +process.env.CACHE_IPV  || 4,
         sfx :  process.env.CACHE_SFX  || ''
+    },
+
+    streams: {
+        refreshInterval: 1000 * 60 * 5,
+        youtubeKey: process.env.YOUTUBE_KEY,
+        channels: (process.env.STREAMS_CHANNELS || '').split(',')
     }
 };

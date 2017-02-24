@@ -1,3 +1,5 @@
+require('./streams');
+
 const bot    = require('./bot');
 const api    = require('./api');
 const i18n   = require('./i18n');
@@ -243,7 +245,7 @@ bot.onText(/\/match(@\w+)?(\s(\d+))?/, (msg, match) => {
             });
 
             let textTable = table.reduce((textTable, table) => {
-                return textTable + `Команда ${table.name} (ELO ${table.elo}) – ${table.win ? 'Победа' : 'Поражение'}\n` +
+                return textTable + `Команда ${table.name} (ELO ${table.elo}) – ${table.win ? '<b>Победа</b>' : 'Поражение'}\n` +
                     table.body + `\n`;
             }, '');
 
