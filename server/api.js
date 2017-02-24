@@ -7,7 +7,7 @@ const httpOptions = {
     rejectUnauthorized: false
 };
 
-exports.stats = (nickname) => {
+exports.player = (nickname) => {
     if (!nickname) {
         return Promise.reject();
     }
@@ -53,4 +53,33 @@ exports.vgmessages = (params) => {
             limit: params && params.limit || 1
         }
     }, httpOptions)).then(res => res.body);
+};
+
+exports.match = (matchId) => {
+    if (!matchId) {
+        return Promise.reject();
+    }
+
+    return got(`${apiHost}/v2/matches/${encodeURIComponent(matchId)}`, Object.assign({
+        query: {
+            lang: 'russian'
+        }
+    }, httpOptions))
+    .then(res => res.body);
+};
+
+exports.stats = (matchId) => {
+    if (!matchId) {
+        return Promise.reject();
+    }
+
+    return got(`${apiHost}/v2/matches/${encodeURIComponent(matchId)}/stats`, Object.assign({
+        query: {
+            lang: 'russian',
+            sort: {
+                score: -1
+            }
+        }
+    }, httpOptions))
+    .then(res => res.body);
 };

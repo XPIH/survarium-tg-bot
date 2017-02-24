@@ -44,20 +44,15 @@ bot.onText(/\/stats(@\w+)?(\s(.*))?/, (msg, match) => {
             throw new Error(ERR_NOCACHED);
         })
         .catch(() => api
-                .stats(nickname)
+                .player(nickname)
                 .then(json => {
-                    let name = json.nickname;
-
-                    if (json.clan_meta) {
-                        name = `[${json.clan_meta.abbr}] ${name}`;
-                    }
-
-                    const message = `<a href="${FRONT}/players/${encodeURIComponent(json.nickname)}">${name}</a>\n` +
+                    const message = `${helpers.playerName(json)}\n` +
                         `LVL: ${json.progress.level}\n` +
                         `KD: ${json.total.kd} (${json.total.kills}/${json.total.dies})`;
 
                     cache.set(cacheKey, message, 'EX', 60 * 10);
-                    send(message);
+
+                    return send(message);
                 })
             )
         .catch(bot.handleError.bind(bot, chatId, msg));
@@ -80,7 +75,7 @@ bot.on('inline_query', msg => {
 
             bot.track(msg, 'Inline query');
 
-            bot.answerInlineQuery(chatId, json.map(player => ({
+            return bot.answerInlineQuery(chatId, json.map(player => ({
                 type: 'article',
                 id: player.nickname,
                 title: player.nickname,
@@ -103,7 +98,6 @@ bot.onText(/\/steam/, (msg) => {
     cache
         .get(cacheKey)
         .then(cached => {
-
             if (cached) {
                 return send(cached);
             }
@@ -116,7 +110,8 @@ bot.onText(/\/steam/, (msg) => {
                     let count = json.count;
 
                     cache.set(cacheKey, count, 'EX', 60 * 5);
-                    send(count);
+
+                    return send(count);
                 })
         )
         .catch(bot.handleError.bind(bot, chatId, msg));
@@ -135,7 +130,6 @@ bot.onText(/\/online/, (msg) => {
     cache
         .get(cacheKey)
         .then(cached => {
-
             if (cached) {
                 return send(cached);
             }
@@ -148,7 +142,8 @@ bot.onText(/\/online/, (msg) => {
                     let count = json.count;
 
                     cache.set(cacheKey, count, 'EX', 60 * 2);
-                    send(count);
+
+                    return send(count);
                 })
         )
         .catch(bot.handleError.bind(bot, chatId, msg));
@@ -159,18 +154,18 @@ bot.onText(/\/devmsg/, (msg) => {
 
     bot.track(msg, 'Last devmessage');
 
+    let send = message => {
+        helpers.devmessage(message).forEach(chunk =>
+            bot.sendMessage(chatId, chunk, {
+                parse_mode: 'HTML',
+                disable_web_page_preview: true
+            }));
+    };
+
     const cacheKey = `vg:messages`;
     cache
         .get(cacheKey)
         .then(cached => {
-            let send = message => {
-                helpers.devmessage(message).forEach(chunk =>
-                    bot.sendMessage(chatId, chunk, {
-                        parse_mode: 'HTML',
-                        disable_web_page_preview: true
-                    }));
-            };
-
             if (cached) {
                 return send(cached);
             }
@@ -189,8 +184,77 @@ bot.onText(/\/devmsg/, (msg) => {
                     message.dev = devs.filter(dev => Number(dev.id) === message.dev)[0];
 
                     cache.set(cacheKey, message, 'EX', 60 * 2);
-                    send(message);
+
+                    return send(message);
                 })
         )
         .catch(bot.handleError.bind(bot, chatId, msg));
+});
+
+bot.onText(/\/match(@\w+)?(\s(\d+))?/, (msg, match) => {
+    const chatId = msg.chat.id;
+    let matchId = match[3];
+
+    if (!matchId) {
+        return bot.sendMessage(chatId, i18n('usage:match'), { parse_mode: 'Markdown' });
+    }
+
+    matchId = Number(matchId);
+
+    bot.track(msg, 'Match stats');
+
+    let send = message => {
+        bot.sendMessage(chatId, message, {
+            parse_mode: 'HTML',
+            disable_web_page_preview: true
+        });
+    };
+
+    const cacheKey = `matches:${matchId}`;
+    cache
+    .get(cacheKey)
+    .then(cached => {
+        if (cached) {
+            return send(cached);
+        }
+
+        throw new Error(ERR_NOCACHED);
+    })
+    .catch(() => Promise.all([
+            api.match(matchId),
+            api.stats(matchId)
+        ])
+        .then(json => {
+            let match = json[0];
+            let stats = json[1];
+
+            let map = match.map.lang.russian;
+            let table = [
+                { name: 'A', elo: 0, win: false, body: '' },
+                { name: 'B', elo: 0, win: false, body: '' }
+            ];
+
+            stats.forEach(stat => {
+                let scope = table[stat.team];
+
+                scope.win = stat.victory;
+                scope.elo += stat.player.progress.elo;
+                scope.body += `${stat.place}. ${helpers.playerName(stat.player)} <b>${stat.score}</b> ${stat.kd} (${stat.kills}/${stat.dies})\n`;
+            });
+
+            let textTable = table.reduce((textTable, table) => {
+                return textTable + `Команда ${table.name} (ELO ${table.elo}) – ${table.win ? 'Победа' : 'Поражение'}\n` +
+                    table.body + `\n`;
+            }, '');
+
+            const message = `<a href="${FRONT}/matches/${encodeURIComponent(match.id)}">${match.id} / ${map.name} – ${map.mode}</a>\n` +
+                `LVL: ${match.level}; ${match.rating_match ? 'рейтинговый' : 'PVP'} \n` +
+                textTable;
+
+            cache.set(cacheKey, message, 'EX', 60 * 60);
+
+            return send(message);
+        })
+    )
+    .catch(bot.handleError.bind(bot, chatId, msg));
 });

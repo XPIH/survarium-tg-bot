@@ -1,4 +1,7 @@
-exports.devmessage = function (message) {
+const config = require('./config');
+const FRONT  = config.front;
+
+exports.devmessage = message => {
     let dev = message.dev;
     let url = `https://forum.survarium.com/ru/viewtopic.php?f=${message.forum.id}&t=${message.topic.id}&p=${message.post}#p${message.post}`;
 
@@ -43,4 +46,14 @@ exports.devmessage = function (message) {
     }
 
     return messageChunks;
+};
+
+exports.playerName = player => {
+    let result = player.nickname;
+
+    if (player.clan_meta) {
+        result = `[${player.clan_meta.abbr}] ${result}`;
+    }
+
+    return `<a href="${FRONT}/players/${encodeURIComponent(player.nickname)}">${result}</a>`;
 };

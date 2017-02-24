@@ -1,5 +1,6 @@
 {
   "usage:stats": "Использование: `/stats Nickname`",
+  "usage:match": "Использование: `/match 1234567`",
   "players:online": "Игроков активно: %count%",
   "steam:online": "Оналайн через steam: %count%"
 }
