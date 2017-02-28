@@ -1,11 +1,11 @@
-require('./streams');
-
 const bot    = require('./bot');
 const api    = require('./api');
 const i18n   = require('./i18n');
 const config = require('./config');
 const cache  = require('./cache');
 const helpers = require('./helpers');
+
+config.streams.enable && require('./streams');
 
 const FRONT = config.front;
 const ERR_NOCACHED = 'no cached data';

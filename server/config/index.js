@@ -27,6 +27,7 @@ module.exports = {
     },
 
     streams: {
+        enable: process.env.STREAMS,
         refreshInterval: 1000 * 60 * 5,
         youtubeKey: process.env.YOUTUBE_KEY,
         channels: (process.env.STREAMS_CHANNELS || '').split(',')
